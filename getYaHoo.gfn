@@ -305,7 +305,7 @@ endif
 if !err
   s=strsub(s,&quot;null&quot;,&quot;NA&quot;)
   outfile &quot;@fname&quot; --quiet
-    print(s)
+    print s
   end outfile
 else
   string fname =null
