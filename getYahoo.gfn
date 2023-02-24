@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gretl-functions>
+<gretl-function-package name="getYahoo" needs-time-series-data="true" minver="2019a">
+<author email="yinung.yang@gmail.com">yinung</author>
+<version>2023.2</version>
+<date>2023-02-08</date>
+<description>To download financial data from Yahoo Finance</description>
+<tags>C81</tags>
+<help>
+This package enables easy and free downloads for financial data
+from finance.Yahoo.com.
+
+The main function of this package is getYahoo() which requires
+at least one string paramete for the symbol ticker. For example,
+to download the Microsoft stock prices, you have to specify
+&quot;MSFT&quot; as in the symbol of the Yahoo finance and return it to a
+list (e.g., xL) as follows:
+
+xL = getYahoo(&quot;MSFT&quot;, null, null, 0, null)
+
+ - 1st parameter: the ticker in Yahoo Finance
+ - 2nd parameter: a string in ISO 8601 format with the starting date for
+downloading the data (eg &quot;2022-06-24&quot;). &quot;null&quot; or omitted means the same
+as the current dataset.
+ - 3rd parameter: the a string in ISO 8601 format with the ending date for
+downloading the data (eg &quot;2023-06-24&quot;). &quot;null&quot; or omitted means the same
+as the current dataset.
+ - 4th parameter: an integer between 0 and 5, representing the frequency
+of the data to be downloaded.
+        0 or omitted -&gt; same as the current dataset,
+        1 -&gt; daily
+        2 -&gt; weekly
+        3 -&gt; monthly
+ - 5th parameter: the notes of the data to be downloaded. &quot;null&quot;
+means the same as the current dataset.
+
+
+==Change log==
+2023/02/03
+    ver. 2023.2:adding Help text.
+
+2022/12/08
+    ver. 2022.2:fixing crash and depreciated commands/funcitons
+issues for gretl 2022a.
+2017/02/28
+    ver. 0.70: minor fix of errors in GUI when the API key is
+null .
+2017/02/04
+    ver. 0.69: minor fix due to changes of Yahoo API when the
+API key is null.
+2017/12/04
+    ver. 0.68: Remove Chinese chacters from getYahoo() to comply
+with
+               requirement by gretl official.Chinese version can
+be installed
+               via:
+            install https://sites.google.com/site/gretlmenu/
+package/getYahoo.gfn
+2017/12/03
+    ver. 0.67: Fix the use of &quot;=&quot; as a Boolean operator.
+2014.10.21:
+    ver.0.62 fix errors in downloading stock close prices from
+source {WIKI}
+2014.10.21: ver.0.61 -First (beta) testing version release
+            known issues: daily-data may work for gretl 1.9.12
+</help>
+<gretl-function name="getYahoo" type="list">
+ <params count="5">
+  <param name="sQcode" type="string" optional="true">
+<description>Yahoo Symbol(Ticker)</description>
+  </param>
+  <param name="s1" type="string" optional="true">
+<description>Sample date from YYYY-MM-DD: </description>
+  </param>
+  <param name="s2" type="string" optional="true">
+<description>End</description>
+  </param>
+  <param name="nFrequency" type="int" min="0" max="5" default="0">
+<description>Frequency</description>
+<labels count="6">
+"as current" "daily" "weekly" "monthly" "quarterly" "annual" </labels>
+  </param>
+  <param name="slabel" type="string" optional="true">
+<description>Descriptive label</description>
+  </param>
+ </params>
+<code>source=5
+bUserCode=0
+verbose=0
+if exists(sQcode)
+  if !exists(s1)
+    string s1=obslabel($t1)
+  endif
+  if !exists(s2)
+    string s2=obslabel($t2)
+  endif
+  if !exists(sScode)
+    sScode=&quot;&quot;
+  endif
+  if !bUserCode
+    sUserCode=&quot;&quot;
+  endif
+  if verbose==1
+    printf &quot;==here=\n&quot;
+  endif
+  if !exists(sAuthToken)
+    sAuthToken=&quot;&quot;
+  endif
+  string s1=s1
+  string s2=s2
+  sQcode=strsub(sQcode,&quot;（&quot;,&quot;&quot;)
+  sQcode=strsub(sQcode,&quot;）&quot;,&quot;&quot;)
+  sQcode=strsub(sQcode,&quot;-&quot;,&quot;.&quot;)
+  URL=getYahoo_url(sQcode,s1,s2,nFrequency,source,sScode,bUserCode,sUserCode,sAuthToken)
+  if verbose==1
+    printf &quot;URL(in main)=%s\n&quot;,URL
+  endif
+  scalar err=0
+  string req=&quot;&quot;
+  sName=write_tmpCSV(URL,&amp;err,req,sQcode)
+  string sColname=&quot;Value&quot;
+  if source==1
+    string src=&quot;ODA&quot;
+  endif
+  if source==2
+    string src=&quot;WORLDBANK&quot;
+  endif
+  if source==3
+    string src=&quot;UNDATA&quot;
+  endif
+  if source==4
+    string src=&quot;FRED&quot;
+  endif
+  if source==5
+    string src=&quot;WIKI&quot;
+    string sColname=&quot;Close&quot;
+  endif
+  if sScode!=&quot;&quot;
+    string src=sScode
+    if sScode==&quot;BOE&quot;
+      string sColname=&quot;Value&quot;
+    elif sScode==&quot;QUANDL&quot;
+      string sColname=&quot;Rate&quot;
+    elif sScode==&quot;ECB&quot;
+      string sColname=&quot;Value&quot;
+    elif sScode==&quot;BNP&quot;
+      string sColname=sQcode
+      string sQcode=strsub(sQcode,&quot;/&quot;,&quot;_&quot;)
+    elif sScode==&quot;WIKI&quot;
+      string sColname=&quot;Close&quot;
+    endif
+  endif
+  if sName==&quot;&quot;
+    printf &quot;========================= getYahoo(): ==================================\n&quot;
+    printf &quot;Error %d! Requested entity '%s' does not exist in '%s'.\n&quot;, err,sQcode,src
+    printf &quot;=========================================================================\n&quot;
+    string sQcode=&quot;&quot;
+    list tmplist= const
+  else
+    if $datatype==0
+      open &quot;@sName&quot;
+    else
+    endif
+    if src==&quot;WIKI&quot; || source==5
+      if instring(sQcode, &quot;.&quot;)
+        mS=strsplit(sQcode,&quot;.&quot;)
+        sQcode=mS[2]~mS[1]
+      endif
+      if instring(sQcode, &quot;=&quot;)
+        sQcode=strsub(sQcode,&quot;=&quot;,&quot;_&quot;)
+      endif
+      if instring(sQcode, &quot;^&quot;)
+        sQcode=strsub(sQcode,&quot;^&quot;,&quot;&quot;)
+      endif
+      loop foreach j Open High Low Close AdjClose Volume -q
+        string tmp=sQcode
+        string tmp=tmp~&quot;_$j&quot;
+        catch join &quot;@sName&quot; @tmp --tkey=Date --data=$j
+      endloop
+    else
+      catch join &quot;@sName&quot; @sQcode --tkey=Date --data=@sColname
+    endif
+    err = $error
+    if err
+      printf &quot;There is an Error: %d! ====================&gt;.\n&quot;, err
+    else
+      if verbose==1
+        printf &quot;NO Error %d! ----&gt;.\n&quot;, err
+      endif
+    endif
+    if src==&quot;WIKI&quot; || source==5
+      if !exists(slabel)
+        slabel=&quot;&quot;
+      endif
+      loop foreach j Open High Low Close AdjClose Volume -q
+        setinfo @sQcode_$j -d &quot;@slabel Yahoo finance&quot; --graph-name=&quot;@slabel&quot;
+        list tmplist= const @sQcode_*
+      endloop
+    else
+      setinfo @sQcode -d &quot;@slabel:@src&quot;
+      list tmplist= const @sQcode
+    endif
+  endif
+  return tmplist
+else
+  printf &quot;\n================ Error! ==================\n&quot;
+  printf &quot; There is no Yahoo ticker code!!!!!\n&quot;
+  printf &quot; Please enter the Yahoo ticker code.\n&quot;
+  printf &quot;==========================================\n&quot;
+endif
+</code>
+</gretl-function>
+<gretl-function name="getYahoo_url" type="string" private="1">
+ <params count="9">
+  <param name="sQcode" type="string" optional="true">
+<description>Yahoo Codes</description>
+  </param>
+  <param name="s1" type="string" optional="true">
+<description>Sample date from (樣本開始自) YYYY-MM-DD: </description>
+  </param>
+  <param name="s2" type="string" optional="true">
+<description>to (樣本結束至) YYYY-MM-DD:</description>
+  </param>
+  <param name="nFrequency" type="int" min="0" max="5" default="0">
+<description>Frequency (資料頻率)</description>
+<labels count="6">
+"current sample 依目前樣本" "daily 日資料" "weekly 週資料" "monthly 月資料" "quarterly 季資料" "annual 年資料" </labels>
+  </param>
+  <param name="source" type="int" min="1" max="5" default="1">
+<description>Source (資料庫):</description>
+<labels count="5">
+"ODA (Open Data for Africa initiative from IMF)" "World Bank" "United Nations" "FRED Economic Data" "WIKI for stock prices (股票資料)" </labels>
+  </param>
+  <param name="sScode" type="string" optional="true">
+<description>Use your own Source Code (填入自訂資料庫代碼)</description>
+  </param>
+  <param name="bUserCode" type="bool" default="0">
+<description>Use your own code (使用自訂的代碼 )? </description>
+  </param>
+  <param name="sUserCode" type="string" optional="true">
+<description>Fill your code, i.e., {Source code}/{COUNTRY}_{INDICATOR} (填入代碼):</description>
+  </param>
+  <param name="sAuthToken" type="string" optional="true">
+<description>Yahoo API key (Yahoo 授權碼):</description>
+  </param>
+ </params>
+<code>baseURL=&quot;https://query1.finance.yahoo.com/v7/finance/download/&quot;
+string s1=start_date(strsub(s1,&quot;/&quot;,&quot;-&quot;))
+string s2=end_date(strsub(s2,&quot;/&quot;,&quot;-&quot;))
+if nFrequency ==  0
+  if (($pd == 5)||($pd == 6)||($pd == 7))
+    nFrequency=1
+    sInterval=&quot;1d&quot;
+  elif $pd==52
+    nFrequency=2
+    sInterval=&quot;1wk&quot;
+  elif $pd==12
+    nFrequency=3
+    sInterval=&quot;1mo&quot;
+  elif $pd==4
+    nFrequency=4
+    sInterval=&quot;1mo&quot;
+  elif $pd==1
+    nFrequency=5
+    sInterval=&quot;1mo&quot;
+  endif
+endif
+if nFrequency ==  1
+  collapse=&quot;daily&quot;
+  sInterval=&quot;1d&quot;
+elif nFrequency ==  2
+  collapse=&quot;weekly&quot;
+  sInterval=&quot;1wk&quot;
+elif nFrequency ==  3
+  collapse=&quot;monthly&quot;
+  sInterval=&quot;1mo&quot;
+elif nFrequency ==  4
+  collapse=&quot;quarterly&quot;
+  sInterval=&quot;1mo&quot;
+elif nFrequency ==  5
+  collapse=&quot;yearly&quot;
+  sInterval=&quot;1mo&quot;
+endif
+if bUserCode
+  string sFullcode=baseURL~ sUserCode ~ &quot;.csv&quot;
+else
+  if source==1
+    string src=&quot;ODA&quot;
+  endif
+  if source==2
+    string src=&quot;WORLDBANK&quot;
+  endif
+  if source==3
+    string src=&quot;UNDATA&quot;
+  endif
+  if source==4
+    string src=&quot;FRED&quot;
+  endif
+  if source==5
+    string src=&quot;Yahoo&quot;
+  endif
+  if source==5
+    string src=&quot;WIKI&quot;
+  endif
+  if sScode!=&quot;&quot;
+    string src=sScode
+  endif
+  string sFullcode=baseURL~ &quot;&quot; ~ sQcode
+endif
+sFullcode = sFullcode ~ &quot;?period1=&quot;~ s1 ~ &quot;&amp;period2=&quot; ~ s2 ~ &quot;&amp;interval=&quot; ~ sInterval~ &quot;&amp;events=history&quot;
+return sFullcode
+</code>
+</gretl-function>
+<gretl-function name="write_tmpCSV" type="string" private="1">
+ <params count="4">
+  <param name="URL" type="string"/>
+  <param name="err" type="scalarref"/>
+  <param name="req" type="string"/>
+  <param name="sQcode" type="string"/>
+ </params>
+<code>rnd = randgen1(i,1,9999)
+if $windows
+  fname = sprintf(&quot;@dotdir\\%s_%04d.csv&quot;,sQcode,rnd)
+else
+  fname = sprintf(&quot;@dotdir/%s_%04d.csv&quot;,sQcode,rnd)
+endif
+use_curl = 0
+if use_curl
+  bundle bun = null
+  bun.URL = URL
+  bun.header = &quot;Content-type: application/x-www-form-urlencoded&quot;
+  err = curl(&amp;bun)
+  if !err
+    check = strstr(bun.output, &quot;Not Found&quot;)
+    if strlen(check) &gt; 0
+      err = 404
+    endif
+  else
+    printf &quot;Error %d!\n&quot;, err
+  endif
+  if !err
+    s = bun.output
+  endif
+else
+  catch s = readfile(URL)
+  print &quot;&lt;&gt;&lt;&gt;&lt;&gt;&lt;&gt;&quot;
+  err = $error
+endif
+if !err
+  check = strstr(s, &quot;Requested entity does not exist.&quot;)
+  if strlen(check) &gt; 0
+    err = 404
+  endif
+else
+  printf &quot;Error %d!\n&quot;, err
+endif
+if !err
+  s=strsub(s,&quot;null&quot;,&quot;NA&quot;)
+  outfile &quot;@fname&quot; --quiet
+    print s
+  end outfile
+else
+  string fname =null
+endif
+return fname
+</code>
+</gretl-function>
+<gretl-function name="start_date" type="string" private="1">
+ <params count="1">
+  <param name="sDate" type="string"/>
+ </params>
+<code>if (($pd == 5)||($pd == 6)||($pd == 7))
+  sDate1=sDate
+elif $pd==52
+  sDate1=sDate
+elif $pd==12
+  sDate1=strsub(sDate,&quot;:&quot;,&quot;-&quot;)~&quot;-01&quot;
+elif $pd==4
+  sDate1=strsub(sDate,&quot;:1&quot;,&quot;-01-01&quot;)
+  sDate1=strsub(sDate1,&quot;:2&quot;,&quot;-04-01&quot;)
+  sDate1=strsub(sDate1,&quot;:3&quot;,&quot;-07-01&quot;)
+  sDate1=strsub(sDate1,&quot;:4&quot;,&quot;-09-01&quot;)
+elif $pd==1
+  sDate1=sDate ~ &quot;-01-01&quot;
+endif
+sDate1=strsub(sDate1,&quot;/&quot;,&quot;-&quot;)
+string sDateTimeStamp=sprintf(&quot;%d&quot;,strptime(sDate1,&quot;%Y-%m-%d&quot;))
+return sDateTimeStamp
+</code>
+</gretl-function>
+<gretl-function name="end_date" type="string" private="1">
+ <params count="1">
+  <param name="sDate" type="string"/>
+ </params>
+<code>if (($pd == 5)||($pd == 6)||($pd == 7))
+  sDate1=sDate
+elif $pd==52
+  sDate1=sDate
+elif $pd==12
+  sDate1=strsub(sDate,&quot;:01&quot;,&quot;-01-31&quot;)
+  sDate1=strsub(sDate1,&quot;:02&quot;,&quot;-02-29&quot;)
+  sDate1=strsub(sDate1,&quot;:03&quot;,&quot;-03-31&quot;)
+  sDate1=strsub(sDate1,&quot;:04&quot;,&quot;-04-30&quot;)
+  sDate1=strsub(sDate1,&quot;:05&quot;,&quot;-05-31&quot;)
+  sDate1=strsub(sDate1,&quot;:06&quot;,&quot;-06-30&quot;)
+  sDate1=strsub(sDate1,&quot;:07&quot;,&quot;-07-31&quot;)
+  sDate1=strsub(sDate1,&quot;:08&quot;,&quot;-08-31&quot;)
+  sDate1=strsub(sDate1,&quot;:09&quot;,&quot;-09-30&quot;)
+  sDate1=strsub(sDate1,&quot;:10&quot;,&quot;-10-31&quot;)
+  sDate1=strsub(sDate1,&quot;:11&quot;,&quot;-11-30&quot;)
+  sDate1=strsub(sDate1,&quot;:12&quot;,&quot;-12-31&quot;)
+elif $pd==4
+  sDate1=strsub(sDate,&quot;:1&quot;,&quot;-01-31&quot;)
+  sDate1=strsub(sDate1,&quot;:2&quot;,&quot;-04-30&quot;)
+  sDate1=strsub(sDate1,&quot;:3&quot;,&quot;-07-31&quot;)
+  sDate1=strsub(sDate1,&quot;:4&quot;,&quot;-09-30&quot;)
+elif $pd==1
+  sDate1=sDate ~ &quot;-12-31&quot;
+endif
+sDate1=strsub(sDate1,&quot;/&quot;,&quot;-&quot;)
+string sDateTimeStamp=sprintf(&quot;%d&quot;,strptime(sDate1,&quot;%Y-%m-%d&quot;)+86000)
+return sDateTimeStamp
+</code>
+</gretl-function>
+<sample-script>
+include getYahoo.gfn
+nulldata 107
+setobs 5 2020-01-02
+xL = getYahoo(&quot;^FTSE&quot;, null, null, 0, &quot;FTSE 100 (^FTSE)&quot;)
+xL = getYahoo(&quot;GBPUSD=X&quot;, null, null, 0, &quot;GBP/USD (GBPUSD=X)&quot;)
+xL = getYahoo(&quot;TWD=X&quot;, null, null, 0, &quot;USD/TWD (TWD=X)&quot;)
+xL = getYahoo(&quot;^TWII&quot;, null, null, 0, &quot;TSEC weighted index (^TWII)&quot;)
+xL = getYahoo(&quot;2330.TW&quot;, null, null, 0, &quot;TSMC(2330.TW)&quot;)
+# delete others，only *_Close and *_Volume are kept.
+list dL = * - *_Close - *_Volume
+delete dL
+</sample-script>
+</gretl-function-package>
+</gretl-functions>
