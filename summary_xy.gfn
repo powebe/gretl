@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-functions>
 <gretl-function-package name="summary_xy" minver="1.9.4">
-<author email="yinung.cycu@gmail.com">Yi-Nung Yang</author>
-<version>2023.3</version>
-<date>2023-03-01</date>
+<author email="yinung.yang@gmail.com">Yi-Nung Yang</author>
+<version>2023.4</version>
+<date>2023-04-03</date>
 <description>summary of Z categorized by two discrete series x and y</description>
 <tags>C10</tags>
 <help>
 summary_xy(Z,x,y) is a function for summary of Z variable cross-categorized by
 two discrete series, x and y.
 
-The statisitcs reported are mean, sd, skewness, kurtosis, JB normality test,
+The statistics reported are mean, sd, skewness, kurtosis, JB normality test,
 three (optional) Q-stat with user-specified lags, and three (optional) Q2-stat
 with user-specified lags.
 
 Q and Q2 statistics are specific for time series only. Please use them with care.
 
-# ==== release notes ===================================================
+# ==== changelog ===================================================
+  2023.4.03: ver. 2023.3 minor fix labels of the parameters and typos.
   2018.4.26: ver. 1.4 fixed bugs with nested restricted subsamples.
       removed a non-latin character in the bottom of output.
       fixed bugs while the values of dependent variable are the same.
@@ -29,9 +30,6 @@ Q and Q2 statistics are specific for time series only. Please use them with care
   2010.4.17: ver. 1.0
       First release.
 # =======================================================================
-
-This function package in general works in gretl 1.8.4 and higher. But it works
-best in gretl 1.8.6 and higher.
 </help>
 <gretl-function name="summary_xy" type="void">
  <params count="20">
