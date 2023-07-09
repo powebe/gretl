@@ -19,3 +19,9 @@ my unofficial packages for gretl
 
 要安裝最新寫的 getYahoo() 套件：</p>
   install https://github.com/powebe/gretl/raw/main/getYaHoo.gfn
+## 開啟資料檔
+在 gretl 的指令視窗中，下指令：
+  open https://github.com/powebe/gretl/raw/main/xxxxx.gdt
+  
+其中 xxxxx 為上列中之資料檔名稱。例如要安裝 utown.gdt, 指令為:</p>
+  install https://github.com/powebe/gretl/raw/main/utown.gdt
