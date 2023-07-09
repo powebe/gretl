@@ -24,4 +24,4 @@ my unofficial packages for gretl
   open https://github.com/powebe/gretl/raw/main/xxxxx.gdt
   
 其中 xxxxx 為上列中之資料檔名稱。例如要安裝 utown.gdt, 指令為:</p>
-  install https://github.com/powebe/gretl/raw/main/utown.gdt
+  open https://github.com/powebe/gretl/raw/main/utown.gdt
