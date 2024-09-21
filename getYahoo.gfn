@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-functions>
 <gretl-function-package name="getYahoo" needs-time-series-data="true" minver="2019a">
-<author email="yinung.yang@gmail.com">yinung</author>
-<version>2023.2</version>
-<date>2023-02-08</date>
+<author email="yinung.yang@gmail.com">Yi-Nung Yang</author>
+<version>2024.9</version>
+<date>2024-09-21</date>
 <description>To download financial data from Yahoo Finance</description>
 <tags>C81</tags>
 <help>
@@ -36,6 +36,8 @@ means the same as the current dataset.
 
 
 ==Change log==
+2024/09/21
+    ver. 2024.9:revised based on Yahoo Finance API v8.
 2023/02/03
     ver. 2023.2:adding Help text.
 
@@ -244,7 +246,9 @@ endif
 <description>Yahoo API key (Yahoo 授權碼):</description>
   </param>
  </params>
-<code>baseURL=&quot;https://query1.finance.yahoo.com/v7/finance/download/&quot;
+<code>#baseURL=&quot;https://query1.finance.yahoo.com/v7/finance/download/&quot;
+# use Yahoo Finance API v8 instead
+baseURL=&quot;https://query1.finance.yahoo.com/v8/finance/chart/&quot;
 string s1=start_date(strsub(s1,&quot;/&quot;,&quot;-&quot;))
 string s2=end_date(strsub(s2,&quot;/&quot;,&quot;-&quot;))
 if nFrequency ==  0
@@ -343,7 +347,7 @@ if use_curl
   endif
 else
   catch s = readfile(URL)
-  print &quot;&lt;&gt;&lt;&gt;&lt;&gt;&lt;&gt;&quot;
+  #print &quot;&lt;&gt;&lt;&gt;&lt;&gt;&lt;&gt;&quot;
   err = $error
 endif
 if !err
@@ -355,9 +359,19 @@ else
   printf &quot;Error %d!\n&quot;, err
 endif
 if !err
-  s=strsub(s,&quot;null&quot;,&quot;NA&quot;)
+  #s=strsub(s,&quot;null&quot;,&quot;NA&quot;)
+  # use Yahoo Finance API v8 instead
+  yfc_result = jsongetb(s).chart.result[1]
+  mtime = yfc_result.timestamp
+  madjclose = yfc_result.indicators.adjclose[1].adjclose
+  bAll = yfc_result.indicators.quote[1]
+  mAll = mtime~bAll.open ~ bAll.high~bAll.low~bAll.close~madjclose~bAll.volume
   outfile &quot;@fname&quot; --quiet
-    print s
+    #            print s
+    printf &quot;Date Open High Low Close AdjClose Volume\n&quot;
+    loop j=1..nelem(mAll[,1])
+      printf &quot;%s %f %f %f %f %f %.0f\n&quot;,strftime(mAll[j,1], &quot;%Y-%m-%d&quot;),mAll[j,2],mAll[j,3],mAll[j,4],mAll[j,5],mAll[j,6],mAll[j,7]
+    endloop
   end outfile
 else
   string fname =null
